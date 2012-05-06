@@ -32,8 +32,10 @@ language.
 
 # Building
 
-    ./configure
+    ./configure [CFLAGS="-g -O0"]
     make
+
+Standard social conventions for `autoconf` apply to the `configure` script
 
 Building will produce a primitive maru s-expression evaluator + OO
 runtime. On it's own, the environment has just the needed primitives
@@ -46,6 +48,17 @@ loaded, you're still in the maru-eval repl but have a much more capable
 system. E.g.: you can define special forms and macros, have many useful forms
 defined for you, can quote and quasi-quote, and all sorts of other
 goodness.
+
+# Usage
+
+    maru-eval -b path/to/boot.l -
+
+This will load the boot.l environment and then proceed to open a repl on
+stdin.
+
+If you simply want to run a script (or set of scripts):
+
+    maru-eval -b path/to/script1 path/to/script/2 path/to/script/3
 
 # Stop
 

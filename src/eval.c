@@ -2242,12 +2242,14 @@ static void replFile(FILE *stream, wchar_t *path)
     }
     GC_UNPROTECT(obj);
     if (opt_v) {
+
 #if (!LIB_GC)
       GC_gcollect();
       printf("%ld collections, %ld objects, %ld bytes, %4.1f%% fragmentation\n",
 	     (long)GC_collections, (long)GC_count_objects(), (long)GC_count_bytes(),
 	     GC_count_fragments() * 100.0);
 #endif
+
     }
   }
   int c= getwc(stream);
@@ -2257,7 +2259,14 @@ static void replFile(FILE *stream, wchar_t *path)
 
 static void replPath(wchar_t *path)
 {
-  FILE *stream= fopen(wcs2mbs(path), "r");
+  printf("running %s ...\n", wcs2mbs(path));
+
+  FILE *stream;
+  if (wcscmp(path, L"-")) {
+    stream = stdin;
+  } else {
+    stream = fopen(wcs2mbs(path), "r");
+  }
   if (!stream) {
     int err= errno;
     fprintf(stderr, "\nerror: ");
@@ -2266,7 +2275,7 @@ static void replPath(wchar_t *path)
     fatal(0);
   }
   fwide(stream, 1);
-  fscanf(stream, "#!%*[^\012\015]");
+  /* fscanf(stream, "#!%*[^\012\015]");*/
   replFile(stream, path);
   fclose(stream);
 }
@@ -2534,6 +2543,7 @@ int main(int argc, char **argv)
 #endif
 
   while (is(Pair, get(arguments, Variable,value))) {
+
     oop argl= get(arguments, Variable,value);		GC_PROTECT(argl);
     oop args= getHead(argl);
     oop argt= getTail(argl);
@@ -2541,36 +2551,39 @@ int main(int argc, char **argv)
     if 	    (!wcscmp (arg, L"-v"))	{ ++opt_v; }
     else if (!wcscmp (arg, L"-b"))	{ ++opt_b; }
     else if (!wcscmp (arg, L"-g"))	{ ++opt_g;  opt_p= 0; }
-#  if (!LIB_GC)
+#if (!LIB_GC)
     else if (!wcsncmp(arg, L"-p", 2)) {
-	opt_g= 0;
-	opt_p= wcstoul(arg + 2, 0, 0);
-	if (!opt_p) opt_p= 1;
-	printf("profiling every %i mSec(s)\n", opt_p);
+    	opt_g= 0;
+    	opt_p= wcstoul(arg + 2, 0, 0);
+    	if (!opt_p) opt_p= 1;
+    	printf("profiling every %i mSec(s)\n", opt_p);
     }
-#  endif
+#endif
     else
     {
-	if (!opt_b)
-	{
-	    replPath(L"boot.l");
-	    opt_b= 1;
-	}
-	else
-	{
-#          if (!LIB_GC)
-	    if (opt_p) profilingEnable();
-#	   endif
-	    set(arguments, Variable,value, argt);
-	    replPath(arg);
-	    repled= 1;
-#	   if (!LIB_GC)
-	    if (opt_p) profilingDisable(0);
-#	   endif
-	}
-	argt= get(arguments, Variable,value);
+    	if (!opt_b)
+    	{
+          replPath(L"boot.l");
+          opt_b= 1;
+      }
+      else
+      {
+#if (!LIB_GC)
+  	    if (opt_p) { profilingEnable(); }
+#endif
+
+        set(arguments, Variable,value, argt);
+  	    replPath(arg);
+	      repled= 1;
+#if (!LIB_GC)
+	      if (opt_p) profilingDisable(0);
+#	endif
+	    }
+
+      argt= get(arguments, Variable,value);
     }
     set(arguments, Variable,value, argt);		GC_UNPROTECT(argl);
+
   }
 
   if (opt_v) {
@@ -2587,6 +2600,9 @@ int main(int argc, char **argv)
     replFile(stdin, L"<stdin>");
     printf("\nmorituri te salutant\n");
   }
+
+  /* replFile(stdin, L"<stdin>");*/
+
 
 #if (!LIB_GC)
   if (opt_p) profilingDisable(1);
