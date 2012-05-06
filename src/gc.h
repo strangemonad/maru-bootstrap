@@ -1,3 +1,23 @@
+/* gc.h -- trivial single-threaded stop-world non-moving mark-sweep collector
+**
+** Copyright (c) 2008 Ian Piumarta
+** All Rights Reserved
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and associated documentation files (the 'Software'),
+** to deal in the Software without restriction, including without limitation
+** the rights to use, copy, modify, merge, publish, distribute, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, provided that the above copyright notice(s) and this
+** permission notice appear in all copies of the Software.  Inclusion of the
+** the above copyright notice(s) and this permission notice in supporting
+** documentation would be appreciated but is not required.
+**
+** THE SOFTWARE IS PROVIDED 'AS IS'.  USE ENTIRELY AT YOUR OWN RISK.
+**
+** Last edited: 2011-10-14 17:04:43 by piumarta on debian.piumarta.com
+*/
+
 #ifndef _GC_H_
 #define _GC_H_
 
@@ -148,33 +168,5 @@ extern GC_mark_function_t GC_mark_function;
 
 typedef void (*GC_free_function_t)(void *ptr);
 extern GC_free_function_t GC_free_function;
-
-
-typedef struct _gcheader
-{
-  unsigned long		size  : BITS_PER_WORD - 8	__attribute__((__packed__));
-  union {
-    unsigned int	flags : 3;
-    struct {
-      unsigned int	used  : 1;
-      unsigned int	atom  : 1;
-      unsigned int	mark  : 1;
-    }							__attribute__((__packed__));
-  }							__attribute__((__packed__));
-  struct _gcheader *next;
-  struct _gcfinaliser	*finalisers;
-#ifndef NDEBUG
-  const char	*file;
-  long		 line;
-  const char	*func;
-#endif
-#if defined(GC_APP_HEADER)
-  GC_APP_HEADER
-#endif
-} gcheader;
-
-
-GC_API static inline gcheader *ptr2hdr(void *ptr)	{ return (gcheader *)ptr - 1; };
-GC_API static inline void *hdr2ptr(gcheader *hdr)	{ return (void *)(hdr + 1); }
 
 #endif /* _GC_H_ */

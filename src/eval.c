@@ -23,7 +23,7 @@ extern int isatty(int);
 #if (LIB_GC)
 # include "libgc.c"
 #else
-# include "gc.h"
+# include "gc.c"
 #endif
 
 #include "buffer.h"
@@ -87,10 +87,10 @@ static void fatal(char *reason, ...);
 # define checkType(OBJ, TYPE) OBJ
 #else
 # define checkType(OBJ, TYPE) _checkType(OBJ, TYPE, #TYPE, __FILE__, __LINE__)
-  static inline oop _checkType(oop obj, int type, char *name, char *file, int line)
+  oop _checkType(oop obj, int type, char *name, char *file, int line)
   {
-    if (obj && !((long)obj & 1) && !ptr2hdr(obj)->used)	fatal("%s:%i: attempt to access dead object %s\n", file, line, name);
-    if (!is(type, obj))					fatal("%s:%i: typecheck failed for %s (%i != %i)\n", file, line, name, type, getType(obj));
+    if (obj && !((long)obj & 1) && !ptr2hdr(obj)->used)	{ fatal("%s:%i: attempt to access dead object %s - %lu\n", file, line, name, obj); }
+    if (!is(type, obj)) { fatal("%s:%i: typecheck failed for %s (%i != %i)\n", file, line, name, type, getType(obj)); }
     return obj;
   }
 #endif

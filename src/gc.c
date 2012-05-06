@@ -37,6 +37,35 @@
 
 #define VERBOSE		0
 
+
+typedef struct _gcheader
+{
+  unsigned long		size  : BITS_PER_WORD - 8	__attribute__((__packed__));
+  union {
+    unsigned int	flags : 3;
+    struct {
+      unsigned int	used  : 1;
+      unsigned int	atom  : 1;
+      unsigned int	mark  : 1;
+    }							__attribute__((__packed__));
+  }							__attribute__((__packed__));
+  struct _gcheader *next;
+  struct _gcfinaliser	*finalisers;
+#ifndef NDEBUG
+  const char	*file;
+  long		 line;
+  const char	*func;
+#endif
+#if defined(GC_APP_HEADER)
+  GC_APP_HEADER
+#endif
+} gcheader;
+
+
+GC_API static inline gcheader *ptr2hdr(void *ptr)	{ return (gcheader *)ptr - 1; };
+GC_API static inline void *hdr2ptr(gcheader *hdr)	{ return (void *)(hdr + 1); }
+
+
 #ifndef NDEBUG
 
 GC_API void *GC_stamp(void *ptr, const char *file, long line, const char *func)
