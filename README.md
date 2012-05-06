@@ -9,6 +9,7 @@ Thoughts and comments (and where noted code) are my own.
 maru-bootstrap is my effort to
 
 1) understand the maru project more deeply
+
 2) provide a more modular set of buildings blocks to bootstrap REAL
 "personal computing" - see [modernity](https://github.com/strangemonad/modernity)
 
@@ -31,8 +32,8 @@ language.
 
 # Building
 
-   ./configure
-   make
+    ./configure
+    make
 
 Building will produce a primitive maru s-expression evaluator + OO
 runtime. On it's own, the environment has just the needed primitives
