@@ -29,6 +29,9 @@ extern int isatty(int);
 #include "buffer.h"
 #include "wcs.c"
 
+
+// ------------------------------- Object Structure / Runtine   ---------------------------------
+
 union Object;
 
 typedef union Object *oop;
@@ -174,7 +177,13 @@ static int stringLength(oop string)
 
 static oop newSymbol(wchar_t *cstr)	{ oop obj= newBits(Symbol);	set(obj, Symbol,bits, wcsdup(cstr));			return obj; }
 
-static oop newPair(oop head, oop tail)	{ oop obj= newOops(Pair);	set(obj, Pair,head, head);  set(obj, Pair,tail, tail);	return obj; }
+static oop newPair(oop head, oop tail)
+{
+  oop obj= newOops(Pair);
+  set(obj, Pair,head, head);
+  set(obj, Pair,tail, tail);
+  return obj;
+}
 
 static oop newPairFrom(oop head, oop tail, oop source)
 {
@@ -412,6 +421,10 @@ static oop intern(wchar_t *string)
   return s;
 }
 
+
+// ----------------------------------- READER ----------------------------------------
+
+
 #include "chartab.h"
 
 static int isPrint(int c)	{ return (0 <= c && c <= 127 && (CHAR_PRINT    & chartab[c])) || (c >= 128); }
@@ -422,9 +435,18 @@ static int isLetter(int c)	{ return (0 <= c && c <= 127 && (CHAR_LETTER   & char
 
 #define DONE	((oop)-4)	/* cannot be a tagged immediate */
 
-static oop currentPath= 0;
-static oop currentLine= 0;
-static oop currentSource= 0;
+
+// Source list
+// Pairs are really tripples - a cons pair annotated with
+// the source code where they may have been read from (i.e. pairs have
+// been abused.
+
+// currSource1 = (nil, nil, (path1, line1))
+// currSource2 = (currSource1, nil, (path2, line2)) = ((nil, nil, (path1, line)), nil, (path2, line2))
+
+static oop currentPath= nil;
+static oop currentLine= nil;
+static oop currentSource= nil;
 
 static void beginSource(wchar_t *path)
 {
@@ -2213,6 +2235,8 @@ static subr(address_of)
 
 #undef subr
 
+static oop root_env = nil;
+
 static void replFile(FILE *stream, wchar_t *path)
 {
   set(input, Variable,value, newLong((long)stream));
@@ -2229,11 +2253,18 @@ static void replFile(FILE *stream, wchar_t *path)
       dumpln(obj);
       fflush(stdout);
     }
-    oop env= newEnv(get(globals, Variable,value), 1, 0);	GC_PROTECT(env);
+
+    // Hacky way of growing an env by serially reading files
+    if (!root_env) {
+      root_env = newEnv(get(globals, Variable,value), 1, 0);
+      GC_PROTECT(root_env);
+    }
+
+    oop env = root_env;
     obj= expand(obj, env);
     obj= encode(obj, env);
     oop ctx= newBaseContext(nil, nil, env);			GC_PROTECT(ctx);
-    obj= eval  (obj, ctx);					GC_UNPROTECT(ctx);  GC_UNPROTECT(env);
+    obj= eval  (obj, ctx); GC_UNPROTECT(ctx);
     if ((stream == stdin) || (opt_v > 0)) {
       printf(" => ");
       fflush(stdout);
@@ -2262,7 +2293,7 @@ static void replPath(wchar_t *path)
   printf("running %s ...\n", wcs2mbs(path));
 
   FILE *stream;
-  if (wcscmp(path, L"-")) {
+  if (wcscmp(path, L"-") == 0) {
     stream = stdin;
   } else {
     stream = fopen(wcs2mbs(path), "r");
